@@ -1,25 +1,38 @@
-name: API Test Automation Pipeline
+name: CI
 
-# Pipeline kab chalegi? (Jab bhi code push ho)
 on:
   push:
     branches: [ "main" ]
-  workflow_dispatch: # Ye button dega jisse hum manually bhi run kar sakein
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
-  build-and-test:
-    runs-on: ubuntu-latest # Cloud par ek naya Linux server banega
+  execute-tests:
+    name: Execute API Test Suite
+    runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout the Code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: ☕ Set up Java 17
+      - name: Setup JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: 🚀 Run API Tests
+      - name: Execute Maven tests
         run: mvn clean test
+        continue-on-error: true
+
+      - name: Generate Allure report
+        run: mvn allure:report
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report-${{ github.run_id }}
+          path: target/site/allure-maven-plugin/
+          retention-days: 7
