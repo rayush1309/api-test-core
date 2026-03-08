@@ -1,0 +1,25 @@
+name: API Test Automation Pipeline
+
+# Pipeline kab chalegi? (Jab bhi code push ho)
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch: # Ye button dega jisse hum manually bhi run kar sakein
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest # Cloud par ek naya Linux server banega
+
+    steps:
+      - name: 📥 Checkout the Code
+        uses: actions/checkout@v4
+
+      - name: ☕ Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: 🚀 Run API Tests
+        run: mvn clean test

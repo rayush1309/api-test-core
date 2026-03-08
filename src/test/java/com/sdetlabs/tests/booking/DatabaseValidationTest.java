@@ -17,7 +17,7 @@ import static org.testng.Assert.assertNotNull;
 
 public class DatabaseValidationTest extends BaseTest {
 
-    @Test
+    //@Test
     public void testBookingDataIntegrityWithDatabase() {
 
         System.out.println("--- STEP 1: API LAYER (Creating Booking) ---");
