@@ -1,34 +1,63 @@
-name: CI
+name: CI # Pipeline ka naam jo GitHub Actions dashboard par dikhega
 
+# -------------------------------------------------------------------------
+# TRIGGERS (on): Ye batata hai ki pipeline KAB chalegi.
+# Use Case: Humein CI/CD automate karna hai taaki manual intervention na ho.
+# -------------------------------------------------------------------------
 on:
   push:
     branches: [ "main" ]
+    # What: Jab bhi koi direct 'main' branch mein code push karega.
+    # Why: Taaki ensure ho sake ki main branch mein hamesha stable code ho.
+
   pull_request:
     branches: [ "main" ]
-  workflow_dispatch:
+    # What: Jab koi doosri branch se 'main' mein Pull Request (PR) banayega.
+    # Why : PR merge hone se pehle hi pipeline check kar legi ki naye code ne purane API tests toh break nahi kiye. Agar test fail, toh PR merge block ho jayegi.
 
+  workflow_dispatch:
+  # What: GitHub UI par ek "Run workflow" ka manual button dega.
+  # Why: Kabhi kabhi humein code push kiye bina, bas sanity check ke liye tests chalane hote hain (jaise deployment ke baad).
+
+# -------------------------------------------------------------------------
+# JOBS: Pipeline ke andar ke actual tasks/servers.
+# -------------------------------------------------------------------------
 jobs:
   execute-tests:
-    name: Execute API Test Suite
+    name: Execute API Test Suite # Job ka readable naam
     runs-on: ubuntu-latest
+    # What: GitHub ek fresh, naya Linux (Ubuntu) server udhaar dega is job ke liye.
+    # Why: Linux servers fast, reliable, aur enterprise standard hote hain. Test complete hote hi ye server delete ho jayega (Serverless architecture).
 
+    # ---------------------------------------------------------------------
+    # STEPS: Us Ubuntu server ke andar ek-ek karke kya commands chalani hain.
+    # ---------------------------------------------------------------------
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        # What: GitHub se aapka code download karke is Ubuntu server par layega.
+        # Why: Naya server ekdum khali (blank) hota hai. Bina code ke test kaise chalenge?
 
       - name: Setup JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
-          distribution: 'temurin'
+          distribution: 'temurin' # Enterprise grade Java distribution
           cache: 'maven'
+        # What: Server par Java 17 aur Maven install karega.
+        # Why: Kyunki aapka RestAssured framework Java/Maven par bana hai.
+        # Cache Use Case: 'cache: maven' likhne se ye pichle run ki dependencies (.m2 folder) yaad rakhega, jisse agla run 50% fast ho jayega.
 
       - name: Execute Maven tests
         run: mvn clean test
         continue-on-error: true
+        # What: Actual API automation tests run karega.
+        # Why continue-on-error?: Agar koi API test fail hota hai, toh pipeline default yahin ruk jayegi aur report generate nahi hogi. 'true' karne se ye fail hone par bhi agle step (report generation) par jayega.
 
       - name: Generate Allure report
         run: mvn allure:report
+        # What: Maven ke through Allure HTML report banayega.
+        # Why: 'mvn clean test' sirf raw JSON files deta hai. Ye step unhe ek khubsoorat HTML dashboard mein convert karta hai.
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
@@ -36,3 +65,7 @@ jobs:
           name: allure-report-${{ github.run_id }}
           path: target/site/allure-maven-plugin/
           retention-days: 7
+        # What: HTML report wale folder ko Zip karke GitHub par upload kar dega.
+        # Why: Job khatam hote hi Ubuntu server delete ho jayega aur uske sath report bhi! Ise Artifact ki tarah save karne se hum baad mein report download kar sakte hain.
+        # Dynamic Name: '${{ github.run_id }}' har run ko ek unique ID dega (e.g., allure-report-184729) taaki purani report overwrite na ho.
+        # Retention: 7 din baad zip auto-delete ho jayegi taaki GitHub storage ka bill na aaye.
